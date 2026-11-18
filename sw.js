@@ -1,5 +1,5 @@
 // Service worker : l'app fonctionne hors ligne, mise à jour en arrière-plan.
-const CACHE = "repas-healthy-v4";
+const CACHE = "repas-healthy-v5";
 const LIB = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js";
 const ASSETS = [
   "./",

@@ -4,7 +4,7 @@
 // ---------- État ----------
 const STORE_KEY = "rh_state_v1";
 const DEFAULT_STATE = {
-  prefs: { maxTime: 30, portions: 2, meals: 5, dislikes: [], driveUrl: "", searchOverrides: {} },
+  prefs: { maxTime: 30, portions: 2, meals: 5, dislikes: [], driveUrl: "", searchOverrides: {}, seasonal: true },
   menu: [],          // [{ id, portions, done }]
   checked: {},       // clé article -> true
   extras: [],        // [{ name, checked }]
@@ -101,8 +101,18 @@ function driveLink(name) {
   return driveTemplate().replace(/tomate/i, encodeURIComponent(searchTerm(name)));
 }
 
+// Saison en cours (France) : hiver déc-fév, printemps mars-mai, été juin-août, automne sept-nov
+function currentSeason(d = new Date()) {
+  const m = d.getMonth();
+  return m === 11 || m <= 1 ? "hiver" : m <= 4 ? "printemps" : m <= 7 ? "ete" : "automne";
+}
+const inSeason = (r, s = currentSeason()) => !r.seasons || r.seasons.includes(s);
+const seasonLabel = (s = currentSeason()) => `${SEASONS[s].icon} ${SEASONS[s].name}`;
+const seasonBadge = (r) => r.seasons ? `<span class="badge" title="${r.seasons.map((s) => SEASONS[s].name).join(", ")}">${r.seasons.map((s) => SEASONS[s].icon).join("")}</span>` : "";
+
 function isEligible(r) {
   if (r.time > state.prefs.maxTime) return false;
+  if (state.prefs.seasonal && !inSeason(r)) return false;
   const dis = state.prefs.dislikes.map(norm);
   return !r.ing.some(([name]) => dis.some((d) => d && norm(name).includes(d)));
 }
@@ -207,7 +217,7 @@ function recipeCard(r, extra = "") {
     <div class="meal-emoji">${r.emoji}</div>
     <div class="meal-body">
       <div class="meal-title">${esc(r.title)}</div>
-      <div class="meal-meta"><span class="badge time">⏱ ${r.time} min</span><span class="badge">${PROTEINS[r.protein]}</span></div>
+      <div class="meal-meta"><span class="badge time">⏱ ${r.time} min</span><span class="badge">${PROTEINS[r.protein]}</span>${seasonBadge(r)}</div>
       ${extra}
     </div>
   </div>`;
@@ -220,7 +230,10 @@ function viewMenu() {
       <div class="big">🥗</div>
       <h2>Pas encore de menu</h2>
       <p class="muted">${p.meals} repas · ${p.portions} portions · ≤ ${p.maxTime} min de préparation</p>
-      <button class="btn primary" data-action="generate">✨ Générer mon menu</button>
+      <div style="display:grid; gap:10px; max-width:320px; margin:0 auto">
+        <button class="btn primary" data-action="generate" data-seasonal="1">${seasonLabel()} · Menu de saison</button>
+        <button class="btn" data-action="generate" data-seasonal="0">✨ Menu toutes saisons</button>
+      </div>
     </div>`;
   }
   const done = state.menu.filter((m) => m.done).length;
@@ -231,7 +244,7 @@ function viewMenu() {
       <div class="meal-emoji" data-open="${r.id}" data-portions="${m.portions}">${r.emoji}</div>
       <div class="meal-body">
         <div class="meal-title" data-open="${r.id}" data-portions="${m.portions}">${esc(r.title)}</div>
-        <div class="meal-meta"><span class="badge time">⏱ ${r.time} min</span><span class="badge">${PROTEINS[r.protein]}</span></div>
+        <div class="meal-meta"><span class="badge time">⏱ ${r.time} min</span><span class="badge">${PROTEINS[r.protein]}</span>${seasonBadge(r)}</div>
         <div class="meal-actions">
           <div class="stepper">
             <button data-action="portions" data-i="${i}" data-d="-1" aria-label="Moins de portions">−</button>
@@ -248,6 +261,10 @@ function viewMenu() {
     </div>`;
   }).join("");
   return `
+    <div class="chips" style="margin-bottom:10px">
+      <button class="chip ${p.seasonal ? "on" : ""}" data-action="mode" data-seasonal="1">${seasonLabel()} · De saison</button>
+      <button class="chip ${p.seasonal ? "" : "on"}" data-action="mode" data-seasonal="0">🌍 Toutes saisons</button>
+    </div>
     <p class="muted small" style="margin-top:0">${state.menu.length} repas · ${done} cuisiné${done > 1 ? "s" : ""} · filtre ≤ ${p.maxTime} min</p>
     ${items}
     <div class="row" style="margin-top:14px">
@@ -324,10 +341,11 @@ function viewCourses() {
     <p class="muted small">Astuce : touchez « Leclerc ↗ » pour chercher le produit dans votre drive, ajoutez-le au panier, puis cochez-le ici.</p>`;
 }
 
-let recipeFilter = { q: "", time: 0, protein: "" };
+let recipeFilter = { q: "", time: 0, protein: "", season: "" };
 function viewRecettes() {
   const f = recipeFilter;
   const list = RECIPES.filter((r) =>
+    (!f.season || inSeason(r, f.season)) &&
     (!f.time || r.time <= f.time) &&
     (!f.protein || r.protein === f.protein) &&
     (!f.q || norm(r.title + " " + r.ing.map((i) => i[0]).join(" ")).includes(norm(f.q)))
@@ -336,9 +354,12 @@ function viewRecettes() {
     .map(([t, l]) => `<button class="chip ${f.time === t ? "on" : ""}" data-action="f-time" data-v="${t}">${l}</button>`).join("");
   const protChips = [["", "Toutes"], ...Object.entries(PROTEINS)]
     .map(([k, l]) => `<button class="chip ${f.protein === k ? "on" : ""}" data-action="f-prot" data-v="${k}">${l}</button>`).join("");
+  const seasonChips = [["", "Toutes saisons"], ...Object.entries(SEASONS).map(([k, s]) => [k, `${s.icon} ${s.name}`])]
+    .map(([k, l]) => `<button class="chip ${f.season === k ? "on" : ""}" data-action="f-season" data-v="${k}">${l}</button>`).join("");
   return `
     <div class="filters">
       <input class="input" type="search" placeholder="🔍 Rechercher une recette, un ingrédient…" value="${esc(f.q)}" data-input="f-q">
+      <div class="chips">${seasonChips}</div>
       <div class="chips">${timeChips}</div>
       <div class="chips">${protChips}</div>
     </div>
@@ -419,7 +440,7 @@ function renderSheet() {
   $("#sheet").innerHTML = `<div class="sheet-panel" role="dialog" aria-modal="true" aria-label="${esc(r.title)}">
     <div class="sheet-head"><h2>${esc(r.title)}</h2><button class="icon-btn" data-action="close-sheet" aria-label="Fermer">✕</button></div>
     <div class="hero">${r.emoji}</div>
-    <div class="row" style="margin:12px 0"><span class="badge time">⏱ ${r.time} min</span><span class="badge">${PROTEINS[r.protein]}</span><span class="spacer"></span>
+    <div class="row" style="margin:12px 0; flex-wrap:wrap"><span class="badge time">⏱ ${r.time} min</span><span class="badge">${PROTEINS[r.protein]}</span>${r.seasons ? `<span class="badge">${r.seasons.map((s) => SEASONS[s].icon + " " + SEASONS[s].name).join(" · ")}</span>` : `<span class="badge">Toute l'année</span>`}<span class="spacer"></span>
       <div class="stepper"><button data-action="sheet-portions" data-d="-1">−</button><span>${n} pers.</span><button data-action="sheet-portions" data-d="1">+</button></div>
     </div>
     ${plateLegend()}
@@ -601,9 +622,18 @@ document.addEventListener("click", (e) => {
   const p = state.prefs;
 
   switch (act) {
-    case "generate": generateMenu(); render(); break;
+    case "generate":
+      if (a.dataset.seasonal) p.seasonal = a.dataset.seasonal === "1";
+      generateMenu(); render();
+      break;
+    case "mode":
+      p.seasonal = a.dataset.seasonal === "1"; save(); render();
+      toast(p.seasonal ? "Remplacements et nouveaux menus : recettes de saison" : "Remplacements et nouveaux menus : toutes saisons");
+      break;
     case "regenerate":
-      if (!state.menu.length || confirm("Remplacer le menu actuel par un nouveau ?")) { generateMenu(); render(); toast("Nouveau menu généré ✨"); }
+      if (!state.menu.length || confirm(`Remplacer le menu actuel par un nouveau menu ${p.seasonal ? "de saison" : "toutes saisons"} ?`)) {
+        generateMenu(); render(); toast(p.seasonal ? `Nouveau menu de saison ${SEASONS[currentSeason()].icon}` : "Nouveau menu généré ✨");
+      }
       break;
     case "add-random": {
       const inMenu = new Set(state.menu.map((m) => m.id));
@@ -637,6 +667,7 @@ document.addEventListener("click", (e) => {
 
     case "f-time": recipeFilter.time = Number(a.dataset.v); render(); break;
     case "f-prot": recipeFilter.protein = a.dataset.v; render(); break;
+    case "f-season": recipeFilter.season = a.dataset.v; render(); break;
 
     case "p-time": p.maxTime = Number(a.dataset.v); save(); render(); break;
     case "p-meals": p.meals = Math.min(14, Math.max(1, p.meals + Number(a.dataset.d))); save(); render(); break;
