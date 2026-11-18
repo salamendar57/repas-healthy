@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Repas Healthy</title>
+  <meta name="description" content="Menus healthy de la semaine, liste de courses Leclerc Drive et mode cuisine pas à pas.">
+  <meta name="theme-color" content="#2f7d4f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Repas Healthy">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 id="view-title">Menu de la semaine</h1>
+  </header>
+
+  <main id="view" class="view"></main>
+
+  <nav class="tabbar" aria-label="Navigation principale">
+    <button data-tab="menu" class="tab active"><span class="tab-ico">📅</span><span>Menu</span></button>
+    <button data-tab="courses" class="tab"><span class="tab-ico">🛒</span><span>Courses</span></button>
+    <button data-tab="recettes" class="tab"><span class="tab-ico">📖</span><span>Recettes</span></button>
+    <button data-tab="reglages" class="tab"><span class="tab-ico">⚙️</span><span>Réglages</span></button>
+  </nav>
+
+  <div id="sheet" class="sheet" hidden></div>
+  <div id="cook" class="cook" hidden></div>
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="recipes.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
