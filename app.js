@@ -83,11 +83,20 @@ function searchTerm(name) {
   return name.replace(/\(.*?\)/g, "").replace(/\bou\b.*$/i, "").replace(/œ/g, "oe").replace(/Œ/g, "Oe").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
+// Magasin par défaut du foyer (Leclerc Drive Saint-Jean-de-la-Ruelle)
+const DEFAULT_DRIVE = "https://fd9-courses.leclercdrive.fr/magasin-034521-034521-saint-jean-de-la-ruelle/recherche.aspx?TexteRecherche=tomate";
+
+// Accepte soit une page de résultats « tomate », soit la page d'accueil d'un magasin Leclerc Drive
+function driveTemplate() {
+  const u = (state.prefs.driveUrl || "").trim();
+  if (/tomate/i.test(u)) return u;
+  const m = u.match(/^(https:\/\/[^/]+leclercdrive\.fr\/magasin-[^/?#]+?)(?:\.aspx)?(?:[/?#].*)?$/i);
+  if (m) return m[1] + "/recherche.aspx?TexteRecherche=tomate";
+  return DEFAULT_DRIVE;
+}
+
 function driveLink(name) {
-  const q = encodeURIComponent(searchTerm(name));
-  const tpl = state.prefs.driveUrl;
-  if (tpl && /tomate/i.test(tpl)) return tpl.replace(/tomate/i, q);
-  return "https://www.e.leclerc/recherche?q=" + q;
+  return driveTemplate().replace(/tomate/i, encodeURIComponent(searchTerm(name)));
 }
 
 function isEligible(r) {
@@ -289,9 +298,7 @@ function viewCourses() {
   const quickChips = quick.filter((q) => !extras.some((e) => norm(e.name) === norm(q)))
     .map((q) => `<button class="chip" data-action="quick-extra" data-name="${esc(q)}">＋ ${esc(q)}</button>`).join("");
 
-  const driveBanner = state.prefs.driveUrl
-    ? ""
-    : `<div class="banner warn">⚠️ Configurez votre magasin Leclerc Drive dans <a href="#" data-goto="reglages">Réglages</a> pour que les boutons « Leclerc ↗ » ouvrent directement la recherche dans votre drive.</div>`;
+  const driveBanner = "";
 
   return `
     ${driveBanner}
@@ -367,17 +374,13 @@ function viewReglages() {
 
     <div class="section-title">Mon Leclerc Drive</div>
     <div class="field card" style="padding:14px">
-      <label>Lien de recherche de votre magasin</label>
-      <input class="input" data-input="drive-url" placeholder="Collez ici le lien copié" value="${esc(p.driveUrl)}">
-      <div class="help">
-        <ol>
-          <li>Ouvrez votre Leclerc Drive habituel et connectez-vous.</li>
-          <li>Recherchez le mot <b>tomate</b>.</li>
-          <li>Copiez l'adresse de la page de résultats et collez-la ci-dessus.</li>
-        </ol>
-        ${p.driveUrl ? (/tomate/i.test(p.driveUrl) ? "✅ Lien configuré." : "⚠️ Le lien ne contient pas « tomate » : refaites la recherche avec ce mot.") : ""}
-        ${p.driveUrl ? `<div style="margin-top:8px"><a href="${esc(driveLink("Courgette"))}" target="_blank" rel="noopener">Tester avec « Courgette » ↗</a></div>` : ""}
+      <label>Magasin</label>
+      <p class="small" style="margin:0 0 10px">${p.driveUrl ? "Magasin personnalisé" : "Saint-Jean-de-la-Ruelle (par défaut)"}</p>
+      <a class="btn sm" href="${esc(driveLink("Courgette"))}" target="_blank" rel="noopener">Tester avec « courgette » ↗</a>
+      <div class="help" style="margin-top:14px">
+        Changer de magasin : collez l'adresse de la page d'accueil de votre Leclerc Drive (ou d'une recherche « tomate »). Laissez vide pour revenir au magasin par défaut.
       </div>
+      <input class="input" style="margin-top:8px" data-input="drive-url" placeholder="https://fdX-courses.leclercdrive.fr/magasin-…" value="${esc(p.driveUrl)}">
     </div>
 
     <div class="section-title">Installer l'app</div>
@@ -692,7 +695,7 @@ document.addEventListener("change", (e) => {
     state.prefs.driveUrl = e.target.value.trim();
     save();
     render();
-    toast(/tomate/i.test(state.prefs.driveUrl) ? "Drive configuré ✓" : "Lien enregistré");
+    toast(state.prefs.driveUrl ? "Magasin enregistré ✓" : "Magasin par défaut rétabli");
   }
 });
 document.addEventListener("keydown", (e) => {
