@@ -1,5 +1,5 @@
 // Service worker : l'app fonctionne hors ligne, mise à jour en arrière-plan.
-const CACHE = "repas-healthy-v1";
+const CACHE = "repas-healthy-v2";
 const ASSETS = [
   "./",
   "index.html",

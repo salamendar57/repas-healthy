@@ -4,7 +4,7 @@
 // ---------- État ----------
 const STORE_KEY = "rh_state_v1";
 const DEFAULT_STATE = {
-  prefs: { maxTime: 30, portions: 2, meals: 5, dislikes: [], driveUrl: "" },
+  prefs: { maxTime: 30, portions: 2, meals: 5, dislikes: [], driveUrl: "", searchOverrides: {} },
   menu: [],          // [{ id, portions, done }]
   checked: {},       // clé article -> true
   extras: [],        // [{ name, checked }]
@@ -77,7 +77,10 @@ function fmtBuy(q, unit) {
 }
 
 function searchTerm(name) {
-  return name.replace(/\(.*?\)/g, "").replace(/\s+/g, " ").trim();
+  const custom = state.prefs.searchOverrides && state.prefs.searchOverrides[name];
+  if (custom) return custom;
+  if (SEARCH[name]) return SEARCH[name];
+  return name.replace(/\(.*?\)/g, "").replace(/\bou\b.*$/i, "").replace(/œ/g, "oe").replace(/Œ/g, "Oe").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 function driveLink(name) {
@@ -265,7 +268,9 @@ function viewCourses() {
       const qty = ray === "X" ? "" : fmtBuy(it.q, it.unit);
       return `<div class="item ${on ? "checked" : ""}">
         <button class="check" data-action="check" data-key="${esc(it.key)}" aria-label="Cocher">${on ? "✓" : ""}</button>
-        <div class="item-name" data-action="check" data-key="${esc(it.key)}">${esc(it.name)}<div class="small muted">${it.from.length > 1 ? it.from.length + " recettes" : esc(it.from[0])}</div></div>
+        <div class="item-name"><span data-action="check" data-key="${esc(it.key)}">${esc(it.name)}</span>
+          <div class="small muted" data-action="check" data-key="${esc(it.key)}">${it.from.length > 1 ? it.from.length + " recettes" : esc(it.from[0])}</div>
+          ${ray === "X" ? "" : `<button class="kw" data-action="edit-kw" data-name="${esc(it.name)}">🔍 ${esc(searchTerm(it.name))} ✏️</button>`}</div>
         <span class="item-qty">${qty}</span>
         ${ray === "X" ? "" : `<a class="drive-btn" href="${esc(driveLink(it.name))}" target="_blank" rel="noopener">Leclerc ↗</a>`}
       </div>`;
@@ -613,6 +618,15 @@ document.addEventListener("click", (e) => {
     case "quick-extra": state.extras.push({ name: a.dataset.name, checked: false }); save(); render(); break;
     case "uncheck-all": state.checked = {}; state.extras.forEach((x) => (x.checked = false)); save(); render(); break;
     case "copy-list": copyList(); break;
+    case "edit-kw": {
+      const name = a.dataset.name;
+      const v = prompt(`Mot-clé de recherche Leclerc pour « ${name} » :\n(laisser vide pour revenir au mot-clé par défaut)`, searchTerm(name));
+      if (v === null) break;
+      p.searchOverrides = p.searchOverrides || {};
+      if (v.trim()) p.searchOverrides[name] = v.trim(); else delete p.searchOverrides[name];
+      save(); render(); toast("Mot-clé enregistré ✓");
+      break;
+    }
 
     case "f-time": recipeFilter.time = Number(a.dataset.v); render(); break;
     case "f-prot": recipeFilter.protein = a.dataset.v; render(); break;
