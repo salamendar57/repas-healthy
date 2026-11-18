@@ -22,8 +22,10 @@ function load() {
   } catch (e) { /* stockage indisponible */ }
   return structuredClone(DEFAULT_STATE);
 }
-function save() {
+// fromRemote = true quand la modification vient de l'autre téléphone (pas de renvoi)
+function save(fromRemote) {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+  if (!fromRemote && typeof syncPush === "function") syncPush();
 }
 
 // ---------- Utilitaires ----------
@@ -383,6 +385,8 @@ function viewReglages() {
       <input class="input" style="margin-top:8px" data-input="drive-url" placeholder="https://fdX-courses.leclercdrive.fr/magasin-…" value="${esc(p.driveUrl)}">
     </div>
 
+    ${typeof syncSettingsHtml === "function" ? syncSettingsHtml() : ""}
+
     <div class="section-title">Installer l'app</div>
     <div class="card" style="padding:14px" >
       <p class="small" style="margin:0">${isIOS
@@ -392,7 +396,7 @@ function viewReglages() {
 
     <div class="section-title">Données</div>
     <button class="btn block" data-action="reset">Réinitialiser l'application</button>
-    <p class="muted small" style="text-align:center;margin-top:20px">Repas Healthy · v1 · ${RECIPES.length} recettes<br>Données enregistrées sur cet appareil</p>`;
+    <p class="muted small" style="text-align:center;margin-top:20px">Repas Healthy · v1 · ${RECIPES.length} recettes<br>${typeof sync !== "undefined" && sync.code ? "Données partagées avec le foyer" : "Données enregistrées sur cet appareil"}</p>`;
 }
 
 // ---------- Fiche recette ----------
@@ -639,7 +643,10 @@ document.addEventListener("click", (e) => {
     case "p-portions": p.portions = Math.min(12, Math.max(1, p.portions + Number(a.dataset.d))); save(); render(); break;
     case "p-del-dislike": p.dislikes.splice(i, 1); save(); render(); break;
     case "reset":
-      if (confirm("Effacer le menu, la liste et les réglages ?")) { state = structuredClone(DEFAULT_STATE); save(); render(); }
+      if (confirm("Effacer le menu, la liste et les réglages de ce téléphone ? (il quittera aussi le foyer partagé)")) {
+        if (typeof syncLeave === "function") syncLeave();
+        state = structuredClone(DEFAULT_STATE); save(); render();
+      }
       break;
 
     case "close-sheet": closeSheet(); break;

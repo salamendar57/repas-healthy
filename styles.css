@@ -51,7 +51,16 @@ input { font: inherit; color: inherit; }
   background: var(--bg);
   padding: calc(12px + var(--safe-t)) 16px 8px;
 }
-.topbar h1 { margin: 0; font-size: 1.5rem; letter-spacing: -.01em; }
+.topbar { display: flex; align-items: center; gap: 10px; }
+.topbar h1 { margin: 0; font-size: 1.5rem; letter-spacing: -.01em; flex: 1; }
+.sync-dot { width: 10px; height: 10px; border-radius: 50%; background: #4caf6a; flex: none; }
+.sync-dot[data-s="connecting"] { background: #e9c46a; }
+.sync-dot[data-s="err"] { background: var(--danger); }
+.code-box {
+  font: 700 1.35rem/1.2 ui-monospace, "SF Mono", Consolas, monospace; letter-spacing: .06em;
+  background: var(--surface-2); border-radius: 12px; padding: 12px; text-align: center;
+  user-select: all; word-break: break-all;
+}
 
 .view { padding: 4px 16px 24px; max-width: 680px; margin: 0 auto; }
 

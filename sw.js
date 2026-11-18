@@ -1,10 +1,13 @@
 // Service worker : l'app fonctionne hors ligne, mise à jour en arrière-plan.
-const CACHE = "repas-healthy-v3";
+const CACHE = "repas-healthy-v4";
+const LIB = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js";
 const ASSETS = [
   "./",
   "index.html",
   "styles.css",
   "app.js",
+  "sync.js",
+  LIB,
   "recipes.js",
   "manifest.webmanifest",
   "icons/icon.svg",
@@ -28,7 +31,8 @@ self.addEventListener("activate", (e) => {
 // Réseau d'abord (pour avoir les nouveautés), cache si hors ligne.
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
-  if (e.request.method !== "GET" || url.origin !== location.origin) return;
+  if (e.request.method !== "GET") return;
+  if (url.origin !== location.origin && e.request.url !== LIB) return; // l'API Supabase n'est jamais mise en cache
   e.respondWith(
     fetch(e.request)
       .then((res) => {

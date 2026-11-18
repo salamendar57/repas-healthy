@@ -18,6 +18,7 @@
 <body>
   <header class="topbar">
     <h1 id="view-title">Menu de la semaine</h1>
+    <span id="sync-dot" class="sync-dot" hidden></span>
   </header>
 
   <main id="view" class="view"></main>
@@ -33,7 +34,9 @@
   <div id="cook" class="cook" hidden></div>
   <div id="toast" class="toast" hidden></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js"></script>
   <script src="recipes.js"></script>
   <script src="app.js"></script>
+  <script src="sync.js"></script>
 </body>
 </html>

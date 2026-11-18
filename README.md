@@ -9,5 +9,6 @@ Web app (PWA) pour planifier des menus healthy et équilibrés (½ légumes · �
 
 ## Feuille de route
 1. ✅ v1 — menu, liste de courses Leclerc, mode cuisine, données locales
-2. Synchronisation temps réel entre téléphones (Supabase) + recettes générées par IA
+2. Synchronisation temps réel entre téléphones (Supabase, offre gratuite)
+- Nouvelles recettes : rédigées par Claude dans Claude Code puis ajoutées à `recipes.js` (pas d'API payante)
 3. Extension navigateur pour remplir le panier Leclerc automatiquement
